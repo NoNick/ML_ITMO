@@ -1,0 +1,8 @@
+**/out/**
+**/*.class
+**/.idea/**
+**/*.iml
+**/*.gpl
+
+lib/**
+!lib/*.jar
