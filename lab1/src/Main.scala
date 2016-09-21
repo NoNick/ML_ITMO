@@ -11,14 +11,17 @@ object Main {
     def main(args: Array[String]): Unit = {
         val data = load("chips.txt")
         show(data, "source")
-        showSampleClassification(data, 5)
+
+        val range = 3 to 15
+        showParam(range, SingleParameterFitter.costsByParameters(range, new kNN(euclidMetric),
+            data, SingleParameterFitter.accuracy), "LOO_no_weight")
+        showSampleClassification(data, 9)
     }
 
     def showSampleClassification(dataset: MarkedDataSet, k: Int): Unit = {
-        val splitted = SingleParameterFitter.splitForValidation(dataset, 5)(0)
+        val splitted = SingleParameterFitter.splitForValidation(dataset, 3)(0)
         val testSet = splitted._2.map(entry => entry._1)
-        // TODO: curry
-        val classified = new kNN(k, p => euclidMetric(p, _), splitted._1).classify(testSet)
+        val classified = new kNN(euclidMetric).setParam(k).train(splitted._1).classify(testSet)
         show(classified, "classified")
     }
 
@@ -30,6 +33,10 @@ object Main {
         val posPlot = XY(points = getByClass(1), style = XYPlotStyle.Points, pt = PointType.+, label = "Positives")
         val negPlot = XY(points = getByClass(0), style = XYPlotStyle.Points, pt = PointType.emptyO, label = "Negatives")
         output(PNG("./", filename), xyChart(List(posPlot, negPlot), pointSize = 2.5))
+    }
+
+    def showParam(params: Seq[Int], costs: Seq[Double], filename: String): Unit = {
+        output(PNG("./", filename), xyChart(XY(points = params.map(_.toDouble).zip(costs)), pointSize = 2.5))
     }
 
     /**
