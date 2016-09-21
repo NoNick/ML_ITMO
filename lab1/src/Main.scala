@@ -13,9 +13,12 @@ object Main {
         show(data, "source")
 
         val range = 3 to 15
-        showParam(range, SingleParameterFitter.costsByParameters(range, new kNN(euclidMetric),
-            data, SingleParameterFitter.accuracy), "LOO_no_weight")
-        showSampleClassification(data, 9)
+        showParam(range, SingleParameterFitter.costsByParameters(range, new kNN(Metrics.Manhattan),
+            data, SingleParameterFitter.accuracy), "LOO_noWeight_noTransform_Manhattan")
+        showParam(range, SingleParameterFitter.costsByParameters(range, new kNN(Metrics.Euclidean),
+            data, SingleParameterFitter.accuracy), "LOO_noWeight_noTransform_Euclidean")
+
+        //showSampleClassification(data, 9)
     }
 
     def showSampleClassification(dataset: MarkedDataSet, k: Int): Unit = {
