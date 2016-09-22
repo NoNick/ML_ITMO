@@ -1,50 +1,39 @@
-import org.sameersingh.scalaplot.Style.PointType
-import org.sameersingh.scalaplot.XYPlotStyle
-
 import scala.io.Source
 import org.sameersingh.scalaplot.Implicits._
+
+import Plotter._
+
+import scala.util.Random
 
 object Main {
     type Point = (Double, Double)
     type MarkedDataSet = Seq[(Point, Int)]  // (point, # of class)
 
     def main(args: Array[String]): Unit = {
-        val data = load("chips.txt")
-        show(data, "source")
+        var data = new Random().shuffle(load("chips.txt"))
+        showDataset(data, "source")
+
+        val controlSize = data.size / 5
+        val controlSet = data.take(controlSize)
+        data = data.drop(controlSize)
 
         val range = 3 to 15
-        showParam(range, LeaveOneOut.costsByParameters(range, new kNN(Metrics.Euclidean),
-            data, LeaveOneOut.accuracy), "LOO_noTransform_Euclidean.accuracy")
-        showParam(range, LeaveOneOut.costsByParameters(range, new kNN(Metrics.Manhattan),
-            data, LeaveOneOut.accuracy), "LOO_noTransform_Manhattan.accuracy")
-        showParam(range, CrossValidation.costsByParameters(range, new kNN(Metrics.Euclidean),
-            data, CrossValidation.accuracy), "CV_noTransform_Euclidean.accuracy")
-        showParam(range, CrossValidation.costsByParameters(range, new kNN(Metrics.Manhattan),
-            data, CrossValidation.accuracy), "CV_noTransform_Manhattan.accuracy")
+        showLines(range, LeaveOneOut.costsByParameters(range, new kNN(Metrics.Euclidean),
+            data, LeaveOneOut.accuracy), "LOO.noTransform.Euclidean.accuracy")
+        showLines(range, LeaveOneOut.costsByParameters(range, new kNN(Metrics.Manhattan),
+            data, LeaveOneOut.accuracy), "LOO.noTransform.Manhattan.accuracy")
+        showLines(range, CrossValidation.costsByParameters(range, new kNN(Metrics.Euclidean),
+            data, CrossValidation.accuracy), "CV.noTransform.Euclidean.accuracy")
+        showLines(range, CrossValidation.costsByParameters(range, new kNN(Metrics.Manhattan),
+            data, CrossValidation.accuracy), "CV.noTransform.Manhattan.accuracy")
 
-        //showSampleClassification(data, 9)
-    }
-
-    def showSampleClassification(dataset: MarkedDataSet, k: Int): Unit = {
-        val splitted = LeaveOneOut.splitForValidation(dataset, 3).head
-        val testSet = splitted._2.map(entry => entry._1)
-        val classified = new kNN(euclidMetric).setParam(k).train(splitted._1).classify(testSet)
-        show(classified, "classified")
+        val k = 9
+        showClassifiedDataset(controlSet,
+            new kNN(Metrics.Euclidean).setParam(k).train(data).classify(controlSet.map(_._1)),
+            "ClassifiedControl.Euclidean.9")
     }
 
     def euclidMetric(p1: Point, p2: Point) : Double = math.sqrt(math.pow(p1._1 - p2._1, 2) + math.pow(p1._2 - p2._2, 2))
-
-    def show(dataset: MarkedDataSet, filename: String): Unit = {
-        def getByClass(classN: Int): Seq[Point] = dataset.filter(entry => entry._2 == classN).map(_._1).get
-
-        val posPlot = XY(points = getByClass(1), style = XYPlotStyle.Points, pt = PointType.+, label = "Positives")
-        val negPlot = XY(points = getByClass(0), style = XYPlotStyle.Points, pt = PointType.emptyO, label = "Negatives")
-        output(PNG("./", filename), xyChart(List(posPlot, negPlot), pointSize = 2.5))
-    }
-
-    def showParam(params: Seq[Int], costs: Seq[Double], filename: String): Unit = {
-        output(PNG("./", filename), xyChart(XY(points = params.map(_.toDouble).zip(costs))))
-    }
 
     /**
      * Loads dataset from file.
