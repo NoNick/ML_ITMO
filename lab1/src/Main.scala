@@ -6,34 +6,50 @@ import Plotter._
 import scala.util.Random
 
 object Main {
-    type Point = (Double, Double)
+    type Point = Seq[Double]
     type MarkedDataSet = Seq[(Point, Int)]  // (point, # of class)
 
     def main(args: Array[String]): Unit = {
         var data = new Random().shuffle(load("chips.txt"))
         showDataset(data, "source")
 
-        val controlSize = data.size / 5
-        val controlSet = data.take(controlSize)
+        val controlSize = data.size / 7
+        val controlSet = toParaboloidData(data.take(controlSize))
         data = data.drop(controlSize)
-
-        val range = 3 to 15
-        showLines(range, LeaveOneOut.costsByParameters(range, new kNN(Metrics.Euclidean),
-            data, LeaveOneOut.accuracy), "LOO.noTransform.Euclidean.accuracy")
-        showLines(range, LeaveOneOut.costsByParameters(range, new kNN(Metrics.Manhattan),
-            data, LeaveOneOut.accuracy), "LOO.noTransform.Manhattan.accuracy")
-        showLines(range, CrossValidation.costsByParameters(range, new kNN(Metrics.Euclidean),
-            data, CrossValidation.accuracy), "CV.noTransform.Euclidean.accuracy")
-        showLines(range, CrossValidation.costsByParameters(range, new kNN(Metrics.Manhattan),
-            data, CrossValidation.accuracy), "CV.noTransform.Manhattan.accuracy")
+        val paraboloidData = toParaboloidData(data)
 
         val k = 9
         showClassifiedDataset(controlSet,
-            new kNN(Metrics.Euclidean).setParam(k).train(data).classify(controlSet.map(_._1)),
+            new kNN(Euclidean).setParam(k).train(paraboloidData).classify(controlSet.map(_._1)),
             "ClassifiedControl.Euclidean.9")
+
+        //drawValidationPlots(data, Euclidean, "noTransform")
+        //drawValidationPlots(data, Manhattan, "noTransform")
+        //drawValidationPlots(data, Minkowski3, "noTransform")
+        drawValidationPlots(paraboloidData, Euclidean, "onParaboloid")
+        //drawValidationPlots(paraboloidData, Manhattan, "onParaboloid")
+        //drawValidationPlots(paraboloidData, Minkowski3, "onParaboloid")
     }
 
-    def euclidMetric(p1: Point, p2: Point) : Double = math.sqrt(math.pow(p1._1 - p2._1, 2) + math.pow(p1._2 - p2._2, 2))
+    def toParaboloidData(data: MarkedDataSet): MarkedDataSet = {
+        def projectOnParaboloid(center: Point, t: Double, u: Double): Point => Point =
+            point => List(point(0), point(1), t * point(0) * point(0) + u * point(1) * point(1))
+        val center = data.map(_._1).transpose.map(list => list.sum / list.length)
+        data.map(_._1).map(projectOnParaboloid(center, 1, 1)).zip(data.map(_._2))
+    }
+
+
+    def drawValidationPlots(data: MarkedDataSet, metric: Metric, transformName: String): Unit = {
+        val range = 3 to 15
+        showLines(range, LeaveOneOut.costsByParameters(range, new kNN(metric),
+            data, LeaveOneOut.accuracy), "LOO." + transformName + "." + metric.getName + ".accuracy")
+        showLines(range, CrossValidation.costsByParameters(range, new kNN(metric),
+            data, CrossValidation.accuracy), "CV." + transformName + "." + metric.getName + ".accuracy")
+        showLines(range, LeaveOneOut.costsByParameters(range, new kNN(metric),
+            data, LeaveOneOut.F1), "LOO." + transformName + "." + metric.getName + ".F1")
+        showLines(range, CrossValidation.costsByParameters(range, new kNN(metric),
+            data, CrossValidation.F1), "CV." + transformName + "." + metric.getName + ".F1")
+    }
 
     /**
      * Loads dataset from file.
@@ -44,8 +60,8 @@ object Main {
     def load(path: String): MarkedDataSet =
         Source.fromFile(path).getLines().map { line =>
             val words = line.split(",")
-            ((words(0).toDouble, words(1).toDouble), words(2).toInt)
+            (List(words(0).toDouble, words(1).toDouble), words(2).toInt)
         }.get.toSeq
 
-    def toPair(a: Iterator[Array[Double]]): Iterator[Point] = a.map(a => (a(0), a(1)))
+    def toPair(a: Iterator[Array[Double]]): Iterator[Point] = a.map(a => List(a(0), a(1)))
 }

@@ -1,6 +1,6 @@
 import Main._
 
-class kNN(metric : (Point, Point) => Double) {
+class kNN(metric : Metric) {
     var k: Int = 0
     var trainSet: MarkedDataSet = Nil
 
@@ -14,7 +14,7 @@ class kNN(metric : (Point, Point) => Double) {
     }
 
     def classify(point: Point): (Point, Int) = {
-        val neighbors = trainSet.sortBy(entry => metric(point, entry._1)).take(k).partition(_._2 == 0) // binary classifier
+        val neighbors = trainSet.sortBy(entry => metric.dist(point, entry._1)).take(k).partition(_._2 == 0) // binary classifier
         if (neighbors._1.size >= neighbors._2.size) (point, 0) else (point, 1)
     }
 
