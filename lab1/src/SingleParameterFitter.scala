@@ -3,6 +3,8 @@ import scala.util.Random
 import Main._
 
 trait SingleParameterFitter {
+    def getName: String
+
     /**
      * Splits dataset into two random disjoint unions folds times.
      * Size of test sets is seq.size / folds.

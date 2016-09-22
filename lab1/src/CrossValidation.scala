@@ -2,7 +2,7 @@ import Main._
 
 object CrossValidation extends SingleParameterFitter {
     val folds = 5
-    val repeats = 100
+    val repeats = 200
 
     override def costsByParameters(params: Seq[Int], classifier: kNN, data: MarkedDataSet,
                                    cost: (MarkedDataSet, MarkedDataSet) => Double): Seq[Double] = {
@@ -11,4 +11,5 @@ object CrossValidation extends SingleParameterFitter {
         tr.map(list => list.sum / list.length) // take averages
     }
 
+    override def getName: String = "CV"
 }

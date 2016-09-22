@@ -12,7 +12,7 @@ object Plotter {
 
         val posPlot = XY(points = getByClass(1).map(toTuple2), style = XYPlotStyle.Points, pt = PointType.+, label = "Positives")
         val negPlot = XY(points = getByClass(0).map(toTuple2), style = XYPlotStyle.Points, pt = PointType.emptyO, label = "Negatives")
-        output(PNG("plots/", filename), xyChart(List(posPlot, negPlot), pointSize = 2.5))
+        output(PNG("plots/", filename), xyChart(List(posPlot, negPlot), pointSize = 2.5, showLegend = true))
         println("Wrote " + filename)
     }
 
@@ -23,12 +23,13 @@ object Plotter {
         val falsePos = XY(points = parts._2.map(seq3toTuple2), style = XYPlotStyle.Points, color = Red, pt = PointType.+, label = "False Positives")
         val trueNeg = XY(points = parts._3.map(seq3toTuple2), style = XYPlotStyle.Points, pt = PointType.emptyO, label = "True Negatives")
         val falseNeg = XY(points = parts._4.map(seq3toTuple2), style = XYPlotStyle.Points, color = Red, pt = PointType.emptyO, label = "False Negatives")
-        output(PNG("plots/", filename), xyChart(List(truePos, falsePos, trueNeg, falseNeg), pointSize = 2.5))
+        output(PNG("plots/", filename), xyChart(List(truePos, falsePos, trueNeg, falseNeg), pointSize = 2.5, showLegend = true))
         println("Wrote " + filename)
     }
 
-    def showLines(xs: Seq[Int], ys: Seq[Double], filename: String): Unit = {
-        output(PNG("plots/", filename), xyChart(XY(points = xs.map(_.toDouble).zip(ys))))
+    def showLines(datasets: Seq[(Seq[(Double, Double)], String)], filename: String): Unit = {
+        val xys = datasets.map(dataset => XY(points = dataset._1, label = dataset._2))
+        output(PNG("plots/", filename), xyChart(xys, showLegend = true))
         println("Wrote " + filename)
     }
 

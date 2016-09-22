@@ -23,12 +23,12 @@ object Main {
             new kNN(Euclidean).setParam(k).train(paraboloidData).classify(controlSet.map(_._1)),
             "ClassifiedControl.Euclidean.9")
 
-        //drawValidationPlots(data, Euclidean, "noTransform")
-        //drawValidationPlots(data, Manhattan, "noTransform")
-        //drawValidationPlots(data, Minkowski3, "noTransform")
-        drawValidationPlots(paraboloidData, Euclidean, "onParaboloid")
-        //drawValidationPlots(paraboloidData, Manhattan, "onParaboloid")
-        //drawValidationPlots(paraboloidData, Minkowski3, "onParaboloid")
+        val metrics = List(Manhattan, Euclidean, Minkowski3)
+        val datasets = List((data, "noTransform"), (toParaboloidData(data), "onParaboloid"))
+        drawValidationPlots(datasets, LeaveOneOut, metrics, LeaveOneOut.accuracy, "accuracy")
+        drawValidationPlots(datasets, LeaveOneOut, metrics, LeaveOneOut.F1, "F1")
+        drawValidationPlots(datasets, CrossValidation, metrics, CrossValidation.accuracy, "accuracy")
+        drawValidationPlots(datasets, CrossValidation, metrics, CrossValidation.F1, "F1")
     }
 
     def toParaboloidData(data: MarkedDataSet): MarkedDataSet = {
@@ -39,16 +39,19 @@ object Main {
     }
 
 
-    def drawValidationPlots(data: MarkedDataSet, metric: Metric, transformName: String): Unit = {
-        val range = 3 to 15
-        showLines(range, LeaveOneOut.costsByParameters(range, new kNN(metric),
-            data, LeaveOneOut.accuracy), "LOO." + transformName + "." + metric.getName + ".accuracy")
-        showLines(range, CrossValidation.costsByParameters(range, new kNN(metric),
-            data, CrossValidation.accuracy), "CV." + transformName + "." + metric.getName + ".accuracy")
-        showLines(range, LeaveOneOut.costsByParameters(range, new kNN(metric),
-            data, LeaveOneOut.F1), "LOO." + transformName + "." + metric.getName + ".F1")
-        showLines(range, CrossValidation.costsByParameters(range, new kNN(metric),
-            data, CrossValidation.F1), "CV." + transformName + "." + metric.getName + ".F1")
+    def drawValidationPlots(datasets: Seq[(MarkedDataSet, String)],
+                            validator: SingleParameterFitter,
+                            metrics: Seq[Metric],
+                            cost: (MarkedDataSet, MarkedDataSet) => Double, costName: String): Unit = {
+        val range = 1 to 20
+
+        val lines = (metrics cross datasets).map(pair => {
+            val metric = pair._1
+            val dataset = pair._2
+            (range.map(_.toDouble).zip(validator.costsByParameters(range, new kNN(metric), dataset._1, cost)),
+                dataset._2 + "." + metric.getName)
+        })
+        showLines(lines.toSeq, validator.getName + "." + costName)
     }
 
     /**
@@ -64,4 +67,8 @@ object Main {
         }.get.toSeq
 
     def toPair(a: Iterator[Array[Double]]): Iterator[Point] = a.map(a => List(a(0), a(1)))
+
+    implicit class Crossable[X](xs: Traversable[X]) {
+        def cross[Y](ys: Traversable[Y]) = for { x <- xs; y <- ys } yield (x, y)
+    }
 }
