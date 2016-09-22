@@ -13,16 +13,20 @@ object Main {
         show(data, "source")
 
         val range = 3 to 15
-        showParam(range, SingleParameterFitter.costsByParameters(range, new kNN(Metrics.Manhattan),
-            data, SingleParameterFitter.accuracy), "LOO_noWeight_noTransform_Manhattan")
-        showParam(range, SingleParameterFitter.costsByParameters(range, new kNN(Metrics.Euclidean),
-            data, SingleParameterFitter.accuracy), "LOO_noWeight_noTransform_Euclidean")
+        showParam(range, LeaveOneOut.costsByParameters(range, new kNN(Metrics.Euclidean),
+            data, LeaveOneOut.accuracy), "LOO_noTransform_Euclidean.accuracy")
+        showParam(range, LeaveOneOut.costsByParameters(range, new kNN(Metrics.Manhattan),
+            data, LeaveOneOut.accuracy), "LOO_noTransform_Manhattan.accuracy")
+        showParam(range, CrossValidation.costsByParameters(range, new kNN(Metrics.Euclidean),
+            data, CrossValidation.accuracy), "CV_noTransform_Euclidean.accuracy")
+        showParam(range, CrossValidation.costsByParameters(range, new kNN(Metrics.Manhattan),
+            data, CrossValidation.accuracy), "CV_noTransform_Manhattan.accuracy")
 
         //showSampleClassification(data, 9)
     }
 
     def showSampleClassification(dataset: MarkedDataSet, k: Int): Unit = {
-        val splitted = SingleParameterFitter.splitForValidation(dataset, 3)(0)
+        val splitted = LeaveOneOut.splitForValidation(dataset, 3).head
         val testSet = splitted._2.map(entry => entry._1)
         val classified = new kNN(euclidMetric).setParam(k).train(splitted._1).classify(testSet)
         show(classified, "classified")
@@ -39,7 +43,7 @@ object Main {
     }
 
     def showParam(params: Seq[Int], costs: Seq[Double], filename: String): Unit = {
-        output(PNG("./", filename), xyChart(XY(points = params.map(_.toDouble).zip(costs)), pointSize = 2.5))
+        output(PNG("./", filename), xyChart(XY(points = params.map(_.toDouble).zip(costs))))
     }
 
     /**
