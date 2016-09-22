@@ -19,10 +19,10 @@ trait SingleParameterFitter {
     }
 
     def F1(source: MarkedDataSet, evaluated: MarkedDataSet): Double = {
-        val sets = splitTrueFalse(source, evaluated)
-        val truePositives = sets._1.length
-        val falsePositives = sets._2.length
-        val falseNegatives = sets._4.length
+        val sets = countTrueFalse(source, evaluated)
+        val truePositives = sets._1
+        val falsePositives = sets._2
+        val falseNegatives = sets._4
         truePositives.toDouble / (2 * truePositives + falsePositives + falseNegatives + 1)
     }
 
@@ -48,6 +48,18 @@ trait SingleParameterFitter {
         pairs.filter(pair => pair._2._2 == 1 && pair._1._2 != pair._2._2).map(getPoint),
         pairs.filter(pair => pair._2._2 == 0 && pair._1._2 == pair._2._2).map(getPoint),
         pairs.filter(pair => pair._2._2 == 0 && pair._1._2 != pair._2._2).map(getPoint))
+    }
+
+    def countTrueFalse(source: MarkedDataSet, evaluated: MarkedDataSet): (Int, Int, Int, Int) = {
+        val pairs = source.zip(evaluated)
+        if (source.length != evaluated.length || pairs.exists(pair => pair._1._1 != pair._2._1))
+            throw new IllegalArgumentException("Datasets for F1 are not the same")
+
+        def getPoint(pair: ((Point, Int), (Point, Int))): Point = pair._1._1
+        (pairs.count(pair => pair._2._2 == 1 && pair._1._2 == pair._2._2),
+            pairs.count(pair => pair._2._2 == 1 && pair._1._2 != pair._2._2),
+            pairs.count(pair => pair._2._2 == 0 && pair._1._2 == pair._2._2),
+            pairs.count(pair => pair._2._2 == 0 && pair._1._2 != pair._2._2))
     }
 
     def costsByParameters(params: Seq[Int], classifier: kNN, data: MarkedDataSet,
