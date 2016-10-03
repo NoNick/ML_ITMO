@@ -1,14 +1,15 @@
 import scala.util.Random
 
-class GeneticOptimizer(loss: Seq[Double] => Double) extends Optimizer {
+object GeneticOptimizer extends Optimizer {
     val generationSize = 100
     val survivers = 10
     val mutateK = 0.5
     val generations = 50
     
-    override def optimize(params: Seq[Double]): Seq[Double] = {
+    override def optimize(loss: Seq[Double] => Double, grad: Seq[Double] => Seq[Double],
+                          params: Seq[Double]): Seq[Double] = {
         def cycle(generation: Seq[Seq[Double]]): Seq[Seq[Double]] = {
-            val result = select(mutate(cross(generation)))
+            val result = select(mutate(cross(generation)), loss)
             println("Cost: " + loss(result(0)))
             result
         }
@@ -20,7 +21,8 @@ class GeneticOptimizer(loss: Seq[Double] => Double) extends Optimizer {
         generation.map(_.map(sumRand))
     }
 
-    def select(generation: Seq[Seq[Double]]): Seq[Seq[Double]] = generation.sortBy(loss).take(survivers)
+    def select(generation: Seq[Seq[Double]], loss: Seq[Double] => Double): Seq[Seq[Double]] =
+        generation.sortBy(loss).take(survivers)
 
     def cross(generation: Seq[Seq[Double]]): Seq[Seq[Double]] = {
         def randSize(): Int = {

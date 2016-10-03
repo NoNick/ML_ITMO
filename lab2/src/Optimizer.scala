@@ -1,3 +1,5 @@
 trait Optimizer {
-    def optimize(params: Seq[Double]) : Seq[Double]
+    def optimize(loss: Seq[Double] => Double,
+                 grad: Seq[Double] => Seq[Double],
+                 params: Seq[Double]) : Seq[Double]
 }
