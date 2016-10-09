@@ -6,9 +6,10 @@ import org.sameersingh.scalaplot.XYSeriesImplicits.XY
 import scala.io.Source
 
 object Main {
-    val model = new PolyPerRooms(3, List(2, 3, 4))
-    //val optimizer = new GradientDescender(1e-15, 1e3.toInt)
-    val optimizer = GeneticOptimizer
+    //val model = new PolyPerRooms(3, List(2, 3, 4))
+    val model = new BiPolynomial(2, 2)
+    val optimizer = new GradientDescender(1e-12, 1e3.toInt)
+    //val optimizer = GeneticOptimizer
 
     def main(args: Array[String]): Unit = {
         val dataset = load("prices.txt").filter(x => x._2 >= 2 && x._2 <= 4).sortBy(_._1)
