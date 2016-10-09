@@ -1,7 +1,5 @@
-object GradientDescender extends Optimizer {
-    val maxSteps = 1e2.toInt
-    val alpha = 1e-15
-    // poly(n) -> aplha: 1 -> 1e-2, 2 -> 1e-8, 3 -> 1e-15, 4 -> 1e-22
+class GradientDescender(alpha: Double, maxSteps: Int) extends Optimizer {
+    // poly(n) -> alpha: 1 -> 1e-2, 2 -> 1e-8, 3 -> 1e-15, 4 -> 1e-22
 
     override def optimize(loss: Seq[Double] => Double, grad: Seq[Double] => Seq[Double],
                           params: Seq[Double]): Seq[Double] = {

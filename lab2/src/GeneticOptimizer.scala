@@ -1,9 +1,9 @@
 import scala.util.Random
 
 object GeneticOptimizer extends Optimizer {
-    val generationSize = 100
-    val survivers = 10
-    val mutateK = 0.5
+    val generationSize = 150
+    val survivers = 15
+    val mutateK = 3
     val generations = 50
     
     override def optimize(loss: Seq[Double] => Double, grad: Seq[Double] => Seq[Double],
