@@ -2,9 +2,9 @@ import scala.util.Random
 
 object GeneticOptimizer extends Optimizer {
     val generationSize = 150
-    val survivers = 15
-    val mutateK = 3
-    val generations = 50
+    val survivers = 20
+    val mutateK = 0.5
+    val generations = 100
     
     override def optimize(loss: Seq[Double] => Double, grad: Seq[Double] => Seq[Double],
                           params: Seq[Double]): Seq[Double] = {
@@ -25,12 +25,9 @@ object GeneticOptimizer extends Optimizer {
         generation.sortBy(loss).take(survivers)
 
     def cross(generation: Seq[Seq[Double]]): Seq[Seq[Double]] = {
-        def randSize(): Int = {
-            val rand = math.abs(Random.nextInt()) % generation.size
-            if (rand <= 1) 2 else rand
-        }
+        val crossSize = 2
         def crossSingle(): Seq[Double] = Random.shuffle(generation)
-            .take(randSize()).transpose.map(xs => xs.sum / xs.length)
+            .take(crossSize).transpose.map(xs => xs.sum / xs.length)
         Stream.from(0).take(generationSize).map(_ => crossSingle())
     }
 }

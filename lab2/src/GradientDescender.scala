@@ -4,8 +4,10 @@ class GradientDescender(alpha: Double, maxSteps: Int) extends Optimizer {
     override def optimize(loss: Seq[Double] => Double, grad: Seq[Double] => Seq[Double],
                           params: Seq[Double]): Seq[Double] = {
         def step(params: Seq[Double]) : Seq[Double] = {
-            val result = params.zip(grad(params)).map(x => x._1 - alpha * x._2)
+            val g = grad(params)
+            val result = params.zip(g).map(x => x._1 - alpha * x._2)
             result.foreach(x => print(x + ", "))
+            print("\t" + loss(params))
             println()
             result
         }
