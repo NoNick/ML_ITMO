@@ -5,11 +5,25 @@ import java.io.File
  */
 object Main {
     val N = 10
-    val data = Stream.from(1).take(N).map(n => loadDataset("pu1/part" + n))
+    val data = (1 to N).map(n => loadDataset("pu1/part" + n))
 
     def main(args: Array[String]) : Unit = {
-        println("F1: " + crossValidate(F1))
-        println("accuracy: " + crossValidate(accuracy))
+        println("Multinomial F1: " + crossValidate(F1, constructMultinomial))
+        println("Multinomial accuracy: " + crossValidate(accuracy, constructMultinomial))
+        println("Bernoulli F1: " + crossValidate(F1, constructBernoulli))
+        println("Bernoulli accuracy: " + crossValidate(accuracy, constructBernoulli))
+    }
+
+    def constructMultinomial(trainSet: Seq[Letter], testSet: Seq[Letter]): NaiveBayes = {
+        val Pr = new PriorProbability(trainSet)
+        val p = new MultinomialLikelihood(trainSet)
+        new NaiveBayes(Pr.Pr, p)
+    }
+
+    def constructBernoulli(trainSet: Seq[Letter], testSet: Seq[Letter]): NaiveBayes = {
+        val Pr = new PriorProbability(trainSet)
+        val p = new MultinomialLikelihood(trainSet)
+        new BernoulliNaiveBayes(Pr.Pr, p)
     }
 
     // (true positive, false positive, true negative, false negative)
@@ -17,19 +31,17 @@ object Main {
 
     def accuracy(tp: Int, fp: Int, tn: Int, fn: Int): Double = (tp + tn).toDouble / (tp + fp + tn + fn)
 
-    def crossValidate(f: (Int, Int, Int, Int) => Double): Double = {
-        def evaluate(nb: NaiveBayesian, testSet: Seq[Letter]): (Int, Int, Int, Int) =
+    def crossValidate(f: (Int, Int, Int, Int) => Double, getBayes: (Seq[Letter], Seq[Letter]) => NaiveBayes): Double = {
+        def evaluate(nb: NaiveBayes, testSet: Seq[Letter]): (Int, Int, Int, Int) =
             (testSet.count(l => nb.isSpam(l) && l.category == 1),
                 testSet.count(l => nb.isSpam(l) && l.category == 0),
                 testSet.count(l => !nb.isSpam(l) && l.category == 0),
                 testSet.count(l => !nb.isSpam(l) && l.category == 1))
 
-        Stream.from(0).take(N).map(i => {
+        (0 to (N - 1)).par.map(i => {
             val trainSet = ((if (i > 1) data.take(i - 1) else List()) ++ data.drop(i + 1)).flatten
             val testSet = data(i)
-            val Pr = new PriorProbability(trainSet)
-            val p = new MultinomialLikelihood(trainSet)
-            val nb = new NaiveBayesian(Pr.Pr, p)
+            val nb = getBayes(trainSet, testSet)
 
             val stats = evaluate(nb, testSet)
             f(stats._1, stats._2, stats._3, stats._4)
