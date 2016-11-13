@@ -1,11 +1,13 @@
 import Main._
 
 class SVM(K: Seq[Double] => Seq[Double] => Double, transform: Seq[Double] => Seq[Double]) {
-    val initLambda = 0.5
+    // SVM params
+    val initLambda = 1
     val C = 2.0
-    val alpha = 0.001
-    val iterations = 200
-    var w0 = 0.0
+    val eps = 1e-5
+
+    // learnt data
+    var w0: Double = 0.0
     var trainData: MarkedDataSet = null
     var lambda: Seq[Double] = null
 
@@ -96,7 +98,7 @@ class SVM(K: Seq[Double] => Seq[Double] => Double, transform: Seq[Double] => Seq
     def trainRecursive(data: MarkedDataSet, lambda: Seq[Double]): (Seq[Double], Int) = {
         val lambda_ = updateLambda(lambda, data)
         //System.out.println(lambda.mkString("\t"))
-        if (lambda.zip(lambda_).map(p => math.abs(p._1 - p._2)).max < 1e-3) (lambda_, 1)
+        if (lambda.zip(lambda_).map(p => math.abs(p._1 - p._2)).max < eps) (lambda_, 1)
         else {
             val result = trainRecursive(data, lambda_)
             (result._1, result._2 + 1)

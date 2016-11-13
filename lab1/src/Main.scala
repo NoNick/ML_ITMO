@@ -30,9 +30,9 @@ object Main {
         val svm = new SVM(crossProduct, (xs: Seq[Double]) => xs)
         svm.train(data)
         val svmEvaluated = svm.classify(data.map(_._1))
-        showClassifiedDataset(data, svmEvaluated, "SVM.linear")
-        System.out.println("F1 for SVM: " + CrossValidation.F1(data, svmEvaluated))
-        System.out.println("Confusion matrix for SVM: ")
+        showClassifiedDataset(data, svmEvaluated, "SVM.Id")
+        System.out.println("F1 for SVM.Id: " + CrossValidation.F1(data, svmEvaluated))
+        System.out.println("Confusion matrix for SVM.Id: ")
         CrossValidation.printConfusionMatrix(data, svmEvaluated)
 
         //val metrics = List(Manhattan, Euclidean, Minkowski3)
@@ -44,8 +44,12 @@ object Main {
     }
 
     def toParaboloidData(data: MarkedDataSet): MarkedDataSet = {
-        def projectOnParaboloid(center: Point, t: Double, u: Double): Point => Point =
-            point => List(point(0), point(1), t * point(0) * point(0) + u * point(1) * point(1))
+        def projectOnParaboloid(center: Point, t: Double, u: Double): Point => Point = point => {
+            val x = point(0) - center(0)
+            val y = point(1) - center(1)
+            List(point(0), point(1), t * x + u * y)
+        }
+
         val center = data.map(_._1).transpose.map(list => list.sum / list.length)
         data.map(_._1).map(projectOnParaboloid(center, 1, 1)).zip(data.map(_._2))
     }
