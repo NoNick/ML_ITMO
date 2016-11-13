@@ -9,26 +9,34 @@ object Main {
     type Point = Seq[Double]
     type MarkedDataSet = Seq[(Point, Int)]  // (point, # of class)
 
+    val crossProduct = (xs: Seq[Double]) => (ys: Seq[Double]) => xs.zip(ys).map(p => p._1 * p._2).sum
+
     def main(args: Array[String]): Unit = {
         var data = new Random().shuffle(load("chips.txt"))
         showDataset(data, "source")
 
         val controlSize = data.size / 7
         val controlSet = toParaboloidData(data.take(controlSize))
-        data = data.drop(controlSize)
+        //data = data.drop(controlSize)
         val paraboloidData = toParaboloidData(data)
 
-        val k = 9
-        showClassifiedDataset(controlSet,
-            new kNN(Euclidean).setParam(k).train(paraboloidData).classify(controlSet.map(_._1)),
-            "ClassifiedControl.Euclidean.9")
+//        val k = 7
+//        showClassifiedDataset(controlSet,
+//            new kNN(Euclidean).setParam(k).train(paraboloidData).classify(controlSet.map(_._1)),
+//            "ClassifiedControl.Euclidean.7")
 
-        val metrics = List(Manhattan, Euclidean, Minkowski3)
-        val datasets = List((data, "noTransform"), (toParaboloidData(data), "onParaboloid"))
-        drawValidationPlots(datasets, LeaveOneOut, metrics, LeaveOneOut.accuracy, "accuracy")
-        drawValidationPlots(datasets, LeaveOneOut, metrics, LeaveOneOut.F1, "F1")
-        drawValidationPlots(datasets, CrossValidation, metrics, CrossValidation.accuracy, "accuracy")
-        drawValidationPlots(datasets, CrossValidation, metrics, CrossValidation.F1, "F1")
+        val svm = new SVM(crossProduct, (xs: Seq[Double]) => xs)
+        svm.train(data)
+        val evaluated = svm.classify(data.map(_._1))
+        showClassifiedDataset(data, evaluated, "SVM.linear")
+
+
+        //val metrics = List(Manhattan, Euclidean, Minkowski3)
+        //val datasets = List((data, "noTransform"), (toParaboloidData(data), "onParaboloid"))
+        //drawValidationPlots(datasets, LeaveOneOut, metrics, LeaveOneOut.accuracy, "accuracy")
+        //drawValidationPlots(datasets, LeaveOneOut, metrics, LeaveOneOut.F1, "F1")
+        //drawValidationPlots(datasets, CrossValidation, metrics, CrossValidation.accuracy, "accuracy")
+        //drawValidationPlots(datasets, CrossValidation, metrics, CrossValidation.F1, "F1")
     }
 
     def toParaboloidData(data: MarkedDataSet): MarkedDataSet = {
