@@ -15,21 +15,25 @@ object Main {
         var data = new Random().shuffle(load("chips.txt"))
         showDataset(data, "source")
 
-        val controlSize = data.size / 7
-        val controlSet = toParaboloidData(data.take(controlSize))
-        //data = data.drop(controlSize)
+//        val controlSize = data.size / 7
+//        val controlSet = toParaboloidData(data.take(controlSize))
+//        data = data.drop(controlSize)
         val paraboloidData = toParaboloidData(data)
 
-//        val k = 7
-//        showClassifiedDataset(controlSet,
-//            new kNN(Euclidean).setParam(k).train(paraboloidData).classify(controlSet.map(_._1)),
-//            "ClassifiedControl.Euclidean.7")
+        val k = 7
+        val kNNEvaluated = new kNN(Euclidean).setParam(k).train(paraboloidData).classify(paraboloidData.map(_._1))
+        showClassifiedDataset(paraboloidData, kNNEvaluated, "ClassifiedControl.Euclidean.7")
+        System.out.println("F1 for kNN: " + CrossValidation.F1(paraboloidData, kNNEvaluated))
+        System.out.println("Confusion matrix for kNN: ")
+        CrossValidation.printConfusionMatrix(paraboloidData, kNNEvaluated)
 
         val svm = new SVM(crossProduct, (xs: Seq[Double]) => xs)
         svm.train(data)
-        val evaluated = svm.classify(data.map(_._1))
-        showClassifiedDataset(data, evaluated, "SVM.linear")
-
+        val svmEvaluated = svm.classify(data.map(_._1))
+        showClassifiedDataset(data, svmEvaluated, "SVM.linear")
+        System.out.println("F1 for SVM: " + CrossValidation.F1(data, svmEvaluated))
+        System.out.println("Confusion matrix for SVM: ")
+        CrossValidation.printConfusionMatrix(data, svmEvaluated)
 
         //val metrics = List(Manhattan, Euclidean, Minkowski3)
         //val datasets = List((data, "noTransform"), (toParaboloidData(data), "onParaboloid"))

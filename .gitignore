@@ -6,3 +6,6 @@
 
 lib/**
 !lib/*.jar
+
+lab1/plots/source.png
+lab1/plots/ClassifiedControl.*.png

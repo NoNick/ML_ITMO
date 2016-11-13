@@ -32,6 +32,22 @@ trait SingleParameterFitter {
         source.zip(evaluated).count(pair => pair._1._2 == pair._2._2).toDouble / source.length
 
     /**
+      * Prints matrix
+      *
+      * True Positive  | False Negative
+      * -------------------------------
+      * False Positive | True Negative
+      *
+      * @param source points with correct classes
+      * @param evaluated points with classes to evaluate
+      */
+    def printConfusionMatrix(source: MarkedDataSet, evaluated: MarkedDataSet): Unit = {
+        val confusion = splitTrueFalse(source, evaluated)
+        System.out.println(confusion._1.size + "\t\t" + confusion._4.size)
+        System.out.println(confusion._2.size + "\t\t" + confusion._3.size)
+    }
+
+    /**
      * Splits dataset by binary classifier's hit/miss.
      * Points in source and evaluated should be the same.
      *

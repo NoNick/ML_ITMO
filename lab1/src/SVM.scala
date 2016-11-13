@@ -93,22 +93,31 @@ class SVM(K: Seq[Double] => Seq[Double] => Double, transform: Seq[Double] => Seq
 //        lambda
 //    }
 
-    def trainRecursive(data: MarkedDataSet, lambda: Seq[Double]): Seq[Double] = {
+    def trainRecursive(data: MarkedDataSet, lambda: Seq[Double]): (Seq[Double], Int) = {
         val lambda_ = updateLambda(lambda, data)
-        System.out.println(lambda.mkString("\t"))
-        if (lambda.zip(lambda_).map(p => math.abs(p._1 - p._2)).max < 1e-3) lambda_
-        else trainRecursive(data, lambda_)
+        //System.out.println(lambda.mkString("\t"))
+        if (lambda.zip(lambda_).map(p => math.abs(p._1 - p._2)).max < 1e-3) (lambda_, 1)
+        else {
+            val result = trainRecursive(data, lambda_)
+            (result._1, result._2 + 1)
+        }
     }
 
     def train(data: MarkedDataSet): Unit = {
-        lambda = trainRecursive(data, List.fill(data.size)(initLambda))
+        val trained = trainRecursive(data, List.fill(data.size)(initLambda))
+        lambda = trained._1
+        System.out.println("Coordinate descent is completed in " + trained._2 + " steps.")
+        System.out.println("Lambda: " + lambda.mkString(" "))
+
         trainData = data
+
+        val p0 = data.head
         w0 = data.zip(lambda).map(p => {
             val lambdai = p._2
             val xi = p._1._1
             val yi = p._1._2 * 2 - 1
-            lambdai * yi * K(xi)(data(0)._1)
-        }).sum - (data(0)._2 * 2 - 1).toDouble
+            lambdai * yi * K(xi)(p0._1)
+        }).sum - (p0._2 * 2 - 1).toDouble
     }
 
     def a(x: Point, lambda: Seq[Double], data: MarkedDataSet): Double =
