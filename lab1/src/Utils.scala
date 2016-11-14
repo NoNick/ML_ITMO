@@ -66,7 +66,7 @@ object Utils {
         case Seq(a, b, _) => (a, b)
     }
 
-    def printWilcoxon(knn: Classifier, svm: Classifier, data: MarkedDataSet): Unit = {
+    def printWilcoxon(knn: Classifier, svm: Classifier, data: MarkedDataSet, knnResultF1: Double, svmResultF1: Double): Unit = {
         val knnF1 = CrossValidation.costsForFolds(knn, data, 8, Utils.F1)
         val svmF1 = CrossValidation.costsForFolds(knn, data, 8, Utils.F1)
         val F1s = (knnF1.zip(List.fill(knnF1.size)(false)) ++ svmF1.zip(List.fill(svmF1.size)(true))).sortBy(_._1)
@@ -74,9 +74,9 @@ object Utils {
 
         val n = knnF1.size
         val m = svmF1.size
-//         TODO: p-value
-//        System.out.println("n = " + knnF1.size)
-//        System.out.println("kNN p-value " + knnP)
+        val knnP = knnF1.count(_ >= svmResultF1).toDouble / n // empirical probability of kNN performing better than SVM
+        System.out.println("n = " + knnF1.size)
+        System.out.println("kNN p-value " + knnP)
 
         val Rx = sumRanks(false)
         val Ry = sumRanks(true)
