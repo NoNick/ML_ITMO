@@ -1,10 +1,11 @@
 import Main._
 
-class SVM(K: Seq[Double] => Seq[Double] => Double, transform: Seq[Double] => Seq[Double]) {
+class SVM(K: Seq[Double] => Seq[Double] => Double) {
     // SVM params
-    val initLambda = 1
-    val C = 2.0
-    val eps = 1e-5
+    val C = 0.3
+    val initLambda = C / 2.0
+    val descendEps = 1
+    val filterEps = 1e-2
 
     // learnt data
     var w0: Double = 0.0
@@ -23,18 +24,6 @@ class SVM(K: Seq[Double] => Seq[Double] => Double, transform: Seq[Double] => Seq
             lambdai * lambdaj * yi * yj * K(xi)(xj)
         }).sum / 2.0
     }
-
-    // {-1 + 1/2 * sum(lambda_j * y_i * y_j * K(x_i, x_j), j in 1..n) + 1/2 * lambda_i * K(x_i, x_i)}, i in 1..n
-//    def grad(lambda: Seq[Double], data: MarkedDataSet): Seq[Double] = {
-//        lambda.zip(data).map(pi => -1 + data.zip(lambda).map(pj => {
-//            val lambdaj = pj._2
-//            val xj = pj._1._1
-//            val yj = pj._1._2 * 2 - 1 // from {0, 1} to {-1, 1}
-//            val xi = pi._2._1
-//            val yi = pi._2._2 * 2 - 1
-//            lambdaj * yi * yj * K(xi)(xj)
-//        }).sum / 2.0 + pi._1 * K(pi._2._1)(pi._2._1) / 2.0)
-//    }
 
     def gNorm(lambda: Seq[Double], data: MarkedDataSet, i: Int): Double = {
         val x = data.zip(lambda).map(p => {
@@ -74,31 +63,15 @@ class SVM(K: Seq[Double] => Seq[Double] => Double, transform: Seq[Double] => Seq
             lambdai_
         })
 
-        //if (crossProduct(result)(data.map(_._2 * 2 - 1).map(_.toDouble)) > 1e-6)
         if (lSum > 1e-6)
             System.err.println("Cannot fit conditions, sum is " + lSum)
         result
     }
 
-//    def train(data: MarkedDataSet): Seq[Double] = {
-//        var lambda = fitCondition(List.fill(data.size)(initLambda), C, data)
-//        var ys = data.map(_._2 * 2 - 1).map(_.toDouble)
-//        Stream.from(0).take(iterations).foreach(_ => {
-//            lambda = lambda.zip(grad(lambda, data)).map(p => p._1 + alpha * p._2)
-//            //System.out.println(lambda.mkString(" "))
-//            //System.out.println(crossProduct(lambda)(ys))
-//            lambda = fitCondition(lambda, C, data)
-//            System.out.println(lambda.mkString(" "))
-//            System.out.println(cost(lambda, data))
-//            //System.out.println(crossProduct(lambda)(ys))
-//        })
-//        lambda
-//    }
-
     def trainRecursive(data: MarkedDataSet, lambda: Seq[Double]): (Seq[Double], Int) = {
         val lambda_ = updateLambda(lambda, data)
-        //System.out.println(lambda.mkString("\t"))
-        if (lambda.zip(lambda_).map(p => math.abs(p._1 - p._2)).max < eps) (lambda_, 1)
+//        System.out.println(lambda.mkString("\t"))
+        if (lambda.zip(lambda_).map(p => math.abs(p._1 - p._2)).sum / lambda.size < descendEps) (lambda_, 1)
         else {
             val result = trainRecursive(data, lambda_)
             (result._1, result._2 + 1)
@@ -111,6 +84,10 @@ class SVM(K: Seq[Double] => Seq[Double] => Double, transform: Seq[Double] => Seq
         System.out.println("Coordinate descent is completed in " + trained._2 + " steps.")
         System.out.println("Lambda: " + lambda.mkString(" "))
 
+//        val filtered = data.zip(lambda).filter(p => p._2 < filterEps || p._2 > C - filterEps)
+//        trainData = filtered.map(_._1)
+//        lambda = fitCondition(filtered.map(_._2), C, trainData)
+        lambda = fitCondition(lambda, C, data)
         trainData = data
 
         val p0 = data.head
@@ -132,7 +109,7 @@ class SVM(K: Seq[Double] => Seq[Double] => Double, transform: Seq[Double] => Seq
 
     def classify(points: Seq[Point]): MarkedDataSet = {
         if (trainData == null || lambda == null) throw new IllegalStateException("SVM was not trained")
-        points.map(classify)
+        points.par.map(classify).seq
     }
 
     def classify(point: Point): (Point, Int) = {

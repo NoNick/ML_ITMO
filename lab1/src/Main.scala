@@ -9,10 +9,29 @@ object Main {
     type Point = Seq[Double]
     type MarkedDataSet = Seq[(Point, Int)]  // (point, # of class)
 
+    // Paraboloid params
+    val t = 1.0
+    val u = 1.0
+
     val crossProduct = (xs: Seq[Double]) => (ys: Seq[Double]) => xs.zip(ys).map(p => p._1 * p._2).sum
 
+    def KParaboloid(center: Point, t: Double, u: Double): Seq[Double] => Seq[Double] => Double =
+        (a: Seq[Double]) => (b: Seq[Double]) => (crossProduct(projectOnParaboloid(center, t, u)(a))
+                                                             (projectOnParaboloid(center, t, u)(b)))
+
+    def KDist(center: Point): Seq[Double] => Seq[Double] => Double =
+        (a: Seq[Double]) => (b: Seq[Double]) => distTransform(center)(a) * distTransform(center)(b)
+
+    def KDistDeviation(center: Point, avgDist: Double): Seq[Double] => Seq[Double] => Double =
+        (a: Seq[Double]) => (b: Seq[Double]) => (avgDist - distTransform(center)(a)) *
+                                                (avgDist - distTransform(center)(b))
+
+    def distTransform(center: Point) =
+        (point: Point) => math.sqrt(center.zip(point).map(p => math.pow(p._1 - p._2, 2)).sum)
+
     def main(args: Array[String]): Unit = {
-        var data = new Random().shuffle(load("chips.txt"))
+        //var data = new Random().shuffle(load("chips.txt"))
+        val data = load("chips.txt")
         showDataset(data, "source")
 
 //        val controlSize = data.size / 7
@@ -27,13 +46,23 @@ object Main {
         System.out.println("Confusion matrix for kNN: ")
         CrossValidation.printConfusionMatrix(paraboloidData, kNNEvaluated)
 
-        val svm = new SVM(crossProduct, (xs: Seq[Double]) => xs)
+        val svm = new SVM(crossProduct)
         svm.train(data)
         val svmEvaluated = svm.classify(data.map(_._1))
         showClassifiedDataset(data, svmEvaluated, "SVM.Id")
         System.out.println("F1 for SVM.Id: " + CrossValidation.F1(data, svmEvaluated))
         System.out.println("Confusion matrix for SVM.Id: ")
         CrossValidation.printConfusionMatrix(data, svmEvaluated)
+
+        val center = data.map(_._1).transpose.map(list => list.sum / list.length)
+        val avgDist = data.map(_._1).map(distTransform(center)).sum / data.size.toDouble
+        val svmDist = new SVM(KDistDeviation(center, avgDist))
+        svmDist.train(data)
+        val svmDistEvaluated = svmDist.classify(data.map(_._1))
+        showClassifiedDataset(data, svmDistEvaluated, "SVM.Dist")
+        System.out.println("F1 for SVM.Dist: " + CrossValidation.F1(data, svmDistEvaluated))
+        System.out.println("Confusion matrix for SVM.Dist: ")
+        CrossValidation.printConfusionMatrix(data, svmDistEvaluated)
 
         //val metrics = List(Manhattan, Euclidean, Minkowski3)
         //val datasets = List((data, "noTransform"), (toParaboloidData(data), "onParaboloid"))
@@ -43,17 +72,16 @@ object Main {
         //drawValidationPlots(datasets, CrossValidation, metrics, CrossValidation.F1, "F1")
     }
 
-    def toParaboloidData(data: MarkedDataSet): MarkedDataSet = {
-        def projectOnParaboloid(center: Point, t: Double, u: Double): Point => Point = point => {
-            val x = point(0) - center(0)
-            val y = point(1) - center(1)
-            List(point(0), point(1), t * x + u * y)
-        }
-
-        val center = data.map(_._1).transpose.map(list => list.sum / list.length)
-        data.map(_._1).map(projectOnParaboloid(center, 1, 1)).zip(data.map(_._2))
+    def projectOnParaboloid(center: Point, t: Double, u: Double): Point => Point = point => {
+        val x = point(0) - center(0)
+        val y = point(1) - center(1)
+        List(point(0), point(1), t * x + u * y)
     }
 
+    def toParaboloidData(data: MarkedDataSet): MarkedDataSet = {
+        val center = data.map(_._1).transpose.map(list => list.sum / list.length)
+        data.map(_._1).map(projectOnParaboloid(center, t, u)).zip(data.map(_._2))
+    }
 
     def drawValidationPlots(datasets: Seq[(MarkedDataSet, String)],
                             validator: SingleParameterFitter,
