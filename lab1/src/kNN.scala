@@ -21,5 +21,7 @@ class kNN(metric : Metric) extends Classifier {
         k = newK
         this
     }
+
+    def setParam(param: Double) : Unit = setParam(math.round(param))
 }
 

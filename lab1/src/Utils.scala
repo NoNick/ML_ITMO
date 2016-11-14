@@ -75,8 +75,10 @@ object Utils {
         val n = knnF1.size
         val m = svmF1.size
         val knnP = knnF1.count(_ >= svmResultF1).toDouble / n // empirical probability of kNN performing better than SVM
+        val svmP = svmF1.count(_ >= knnResultF1).toDouble / n
         System.out.println("n = " + knnF1.size)
         System.out.println("kNN p-value " + knnP)
+        System.out.println("SVM p-value " + svmP)
 
         val Rx = sumRanks(false)
         val Ry = sumRanks(true)

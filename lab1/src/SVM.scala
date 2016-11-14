@@ -1,11 +1,18 @@
+import java.util.concurrent.ThreadLocalRandom
+
 import Main._
+
+import scala.util.Random
 
 class SVM(K: Seq[Double] => Seq[Double] => Double) extends Classifier {
     // SVM params
-    val C = 0.34
+    var C = 0.34 // 0.34 is empirical optima
     val initLambda = C / 2.0
-    val descendEps = 1e-1
-    val filterEps = 1e-2
+    val minCost = -50.0
+    val minDiff = 1e-3
+    val updatesPerIteration = 30
+    val maxIterations = 100
+    val eps = 1e-2
 
     // learnt data
     var w0: Double = 0.0
@@ -25,6 +32,7 @@ class SVM(K: Seq[Double] => Seq[Double] => Double) extends Classifier {
         }).sum / 2.0
     }
 
+    // lambda(i) != 0 && lambda(i) != C
     def gNorm(lambda: Seq[Double], data: MarkedDataSet, i: Int): Double = {
         val x = data.zip(lambda).map(p => {
             val lambdaj = p._2
@@ -33,19 +41,20 @@ class SVM(K: Seq[Double] => Seq[Double] => Double) extends Classifier {
             xj.map(_ * lambdaj * yj)
         }).transpose.map(_.sum)
 
-        val g = -1 + K(x)(data(i)._1) + lambda(i) / (2.0 * C)
-        if (lambda(i) < 1e-6) math.min(g, 0) else if (lambda(i) > C - 1e-6) math.max(g, 0) else g
+        (data(i)._2 * 2 - 1) * K(x)(data(i)._1) - 1 + lambda(i) / (2.0 * C) // = g
+//        if (lambda(i) < 1e-6) math.min(g, 0) else if (lambda(i) > C - 1e-6) math.max(g, 0) else g
     }
 
-    def updateLambda(lambdaIn: Seq[Double], data: MarkedDataSet): Seq[Double] = {
-        var lambda: List[Double] = lambdaIn.toList
-        lambda.zipWithIndex.foreach(p => {
-            val i = p._2
-            val l = p._1
-            val l_ = l - gNorm(lambda, data, i) / K(data(i)._1)(data(i)._1)
-            lambda = lambda.updated(i, math.max(0, math.min(C, l_)))
-        })
-        lambda
+    val random = scala.util.Random
+    def updateLambda(lambda: Seq[Double], data: MarkedDataSet): Seq[Double] = {
+        val indices = lambda.zipWithIndex.filter(l => l._1 > eps && l._1 < C)
+        if (indices.isEmpty)
+            return lambda
+
+        val i = random.shuffle(indices).head._2
+        val l = lambda(i)
+        val l_ = l - gNorm(lambda, data, i) / K(data(i)._1)(data(i)._1)
+        lambda.updated(i, math.max(0, math.min(C, l_)))
     }
 
     // 0 <= lambda <= C; sum(lambda_i * y_i, i in 1..n) = 0
@@ -68,35 +77,43 @@ class SVM(K: Seq[Double] => Seq[Double] => Double) extends Classifier {
         result
     }
 
-    def trainRecursive(data: MarkedDataSet, lambda: Seq[Double]): (Seq[Double], Int) = {
-        val lambda_ = updateLambda(lambda, data)
+    def trainRecursive(data: MarkedDataSet, lambda: Seq[Double], iteration: Int = 0): (Seq[Double], Int) = {
+        var lambda_ = lambda
+        Stream.from(0).take(updatesPerIteration).foreach(_ => lambda_ = updateLambda(lambda_, data))
 //        System.out.println(lambda.mkString("\t"))
-        if (lambda.zip(lambda_).map(p => math.abs(p._1 - p._2)).sum / lambda.size < descendEps) (lambda_, 1)
-        else {
-            val result = trainRecursive(data, lambda_)
-            (result._1, result._2 + 1)
-        }
+//        System.out.println(cost(lambda_, data))
+        if (cost(lambda, data) <= minCost ||
+                lambda.zip(lambda_).map(p => (p._1 - p._2).abs).max <= minDiff ||
+                iteration + 1 >= maxIterations)
+            (lambda_, iteration + 1)
+        else trainRecursive(data, lambda_, iteration + 1)
     }
 
     def train(data: MarkedDataSet): Unit = {
         val trained = trainRecursive(data, List.fill(data.size)(initLambda))
         lambda = trained._1
+        trainData = data
 
 //        val filtered = data.zip(lambda).filter(p => p._2 < filterEps || p._2 > C - filterEps)
 //        trainData = filtered.map(_._1)
 //        lambda = fitCondition(filtered.map(_._2), C, trainData)
-        lambda = fitCondition(lambda, C, data)
-        trainData = data
-        System.out.println("Coordinate descent is completed in " + trained._2 + " steps.")
+
+        val lSum = data.map(_._2 * 2 - 1).zip(lambda).map(p => p._1 * p._2).sum
+        if (lSum.abs > eps) {
+            System.err.println("Sum is not zero " + lSum)
+            lambda = fitCondition(lambda, C, trainData)
+        }
+
+        System.out.println("Coordinate descent is completed in " + (trained._2 * updatesPerIteration) + " updates.")
+        System.out.println("Cost for resulting lambda " + cost(lambda, data))
         System.out.println("Lambda: " + lambda.mkString(" "))
 
-        val p0 = data.head
-        w0 = data.zip(lambda).map(p => {
+        w0 = data.map(pk => data.zip(lambda).map(p => {
             val lambdai = p._2
             val xi = p._1._1
             val yi = p._1._2 * 2 - 1
-            lambdai * yi * K(xi)(p0._1)
-        }).sum - (p0._2 * 2 - 1).toDouble
+            lambdai * yi * K(xi)(pk._1)
+        }).sum - (pk._2 * 2 - 1).toDouble).sum / data.size
     }
 
     def a(x: Point, lambda: Seq[Double], data: MarkedDataSet): Double =
@@ -116,4 +133,6 @@ class SVM(K: Seq[Double] => Seq[Double] => Double) extends Classifier {
         val y = math.signum(a(point, lambda, trainData))
         if (y < 0) (point, 0) else (point, 1)
     }
+
+    def setParam(param: Double): Unit = C = param
 }
