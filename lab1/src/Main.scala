@@ -40,11 +40,14 @@ object Main {
         val paraboloidData = toParaboloidData(data)
 
         val k = 7
-        val kNNEvaluated = new kNN(Euclidean).setParam(k).train(paraboloidData).classify(paraboloidData.map(_._1))
+        val knn = new kNN(Euclidean).setParam(k)
+        knn.train(paraboloidData)
+        val kNNEvaluated = knn.classify(paraboloidData.map(_._1))
         showClassifiedDataset(paraboloidData, kNNEvaluated, "ClassifiedControl.Euclidean.7")
         System.out.println("F1 for kNN: " + Utils.F1(paraboloidData, kNNEvaluated))
         System.out.println("Confusion matrix for kNN: ")
         Utils.printConfusionMatrix(paraboloidData, kNNEvaluated)
+        System.out.println()
 
         val svm = new SVM(crossProduct)
         svm.train(data)
@@ -53,6 +56,7 @@ object Main {
         System.out.println("F1 for SVM.Id: " + Utils.F1(data, svmEvaluated))
         System.out.println("Confusion matrix for SVM.Id: ")
         Utils.printConfusionMatrix(data, svmEvaluated)
+        System.out.println()
 
         val center = data.map(_._1).transpose.map(list => list.sum / list.length)
         val avgDist = data.map(_._1).map(distTransform(center)).sum / data.size.toDouble
@@ -63,6 +67,9 @@ object Main {
         System.out.println("F1 for SVM.Dist: " + Utils.F1(data, svmDistEvaluated))
         System.out.println("Confusion matrix for SVM.Dist: ")
         Utils.printConfusionMatrix(data, svmDistEvaluated)
+        System.out.println()
+
+        Utils.printWilcoxon(knn, svmDist, data)
 
         //val metrics = List(Manhattan, Euclidean, Minkowski3)
         //val datasets = List((data, "noTransform"), (toParaboloidData(data), "onParaboloid"))

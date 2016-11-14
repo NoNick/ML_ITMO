@@ -1,6 +1,6 @@
 import Main._
 
-class SVM(K: Seq[Double] => Seq[Double] => Double) {
+class SVM(K: Seq[Double] => Seq[Double] => Double) extends Classifier {
     // SVM params
     val C = 0.34
     val initLambda = C / 2.0

@@ -65,4 +65,32 @@ object Utils {
         case Seq(a, b) => (a, b)
         case Seq(a, b, _) => (a, b)
     }
+
+    def printWilcoxon(knn: Classifier, svm: Classifier, data: MarkedDataSet): Unit = {
+        val knnF1 = CrossValidation.costsForFolds(knn, data, 8, Utils.F1)
+        val svmF1 = CrossValidation.costsForFolds(knn, data, 8, Utils.F1)
+        val F1s = (knnF1.zip(List.fill(knnF1.size)(false)) ++ svmF1.zip(List.fill(svmF1.size)(true))).sortBy(_._1)
+        def sumRanks(label: Boolean): Double = F1s.zipWithIndex.filter(_._1._2 == label).map(_._2).sum
+
+        val n = knnF1.size
+        val m = svmF1.size
+//         TODO: p-value
+//        System.out.println("n = " + knnF1.size)
+//        System.out.println("kNN p-value " + knnP)
+
+        val Rx = sumRanks(false)
+        val Ry = sumRanks(true)
+        val W = Rx
+        System.out.println("W = " + W)
+
+        val alpha = 0.05
+        val Fa = 1.960
+        val Wc = (W - m * (m + n + 1d) / 2d) / math.sqrt(m * n * (m + n + 1.0) / 12.0)
+        System.out.println("Wc = " + math.abs(Wc) + "  ?>=  " + Fa)
+
+        val Wcx = 0.5 * Wc  * (1d + Math.sqrt((n + n - 2d) / (n + m - 1d - Wc * Wc)));
+        val xa = 1.645;
+        val ya = 2.1448;
+        System.out.println("Wcx = " + Math.abs(Wcx) + "  ?>=  " + (xa + ya) / 2d);
+    }
 }

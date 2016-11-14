@@ -29,7 +29,8 @@ trait SingleParameterFitter {
         def getCost(param: Int): Double = {
             classifier.setParam(param)
             val costs = split.map(pair => {
-                val evaluated = classifier.train(pair._1).classify(pair._2.map(_._1))
+                classifier.train(pair._1)
+                val evaluated = classifier.classify(pair._2.map(_._1))
                 cost(pair._2, evaluated)
             })
             costs.sum / costs.length

@@ -1,12 +1,11 @@
 import Main._
 
-class kNN(metric : Metric) {
+class kNN(metric : Metric) extends Classifier {
     var k: Int = 0
     var trainSet: MarkedDataSet = Nil
 
-    def train(data: MarkedDataSet): kNN = {
+    def train(data: MarkedDataSet): Unit = {
         trainSet = data
-        this
     }
 
     def classify(points: Seq[Point]): MarkedDataSet = {

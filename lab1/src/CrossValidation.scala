@@ -12,4 +12,14 @@ object CrossValidation extends SingleParameterFitter {
     }
 
     override def getName: String = "CV"
+
+    def costsForFolds(classifier: Classifier, data: MarkedDataSet, folds: Int,
+                      cost: (MarkedDataSet, MarkedDataSet) => Double): Seq[Double] = {
+        def getCost(sets: (MarkedDataSet, MarkedDataSet)): Double = {
+            classifier.train(sets._1)
+            val evaluated = classifier.classify(sets._2.map(_._1))
+            cost(sets._2, evaluated)
+        }
+        splitForValidation(data, folds).map(getCost)
+    }
 }
