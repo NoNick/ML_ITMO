@@ -1,10 +1,15 @@
-import Main._
+package ru.ifmo.ctddev.akhimulya
 
+import ru.ifmo.ctddev.akhimulya.Main._
+
+/**
+  * Created by noname on 11/14/16.
+  */
 object CrossValidation extends SingleParameterFitter {
     val folds = 5
-    val repeats = 200
+    val repeats = 3
 
-    override def costsByParameters(params: Seq[Int], classifier: kNN, data: MarkedDataSet,
+    override def costsByParameters(params: Seq[Double], classifier: Classifier, data: MarkedDataSet,
                                    cost: (MarkedDataSet, MarkedDataSet) => Double): Seq[Double] = {
         val costsList: Seq[Seq[Double]] = List.fill(repeats)(costsByParametersImpl(params, classifier, data, cost, folds))
         val tr = costsList.transpose

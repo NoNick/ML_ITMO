@@ -1,5 +1,10 @@
-import Main._
+package ru.ifmo.ctddev.akhimulya
 
+import ru.ifmo.ctddev.akhimulya.Main._
+
+/**
+  * Created by noname on 11/14/16.
+  */
 object Utils {
     def F1(source: MarkedDataSet, evaluated: MarkedDataSet): Double = {
         val sets = countTrueFalse(source, evaluated)

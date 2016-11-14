@@ -1,11 +1,15 @@
+package ru.ifmo.ctddev.akhimulya
+
 import org.sameersingh.scalaplot.Implicits._
+import org.sameersingh.scalaplot.Style.Color._
 import org.sameersingh.scalaplot.Style.PointType
 import org.sameersingh.scalaplot.XYPlotStyle
 import org.sameersingh.scalaplot.XYSeriesImplicits.XY
-import org.sameersingh.scalaplot.Style.Color._
+import ru.ifmo.ctddev.akhimulya.Main._
 
-import Main._
-
+/**
+  * Created by noname on 11/14/16.
+  */
 object Plotter {
     def showDataset(dataset: MarkedDataSet, filename: String): Unit = {
         def getByClass(classN: Int): Seq[Point] = dataset.filter(entry => entry._2 == classN).map(_._1).get

@@ -1,7 +1,12 @@
+package ru.ifmo.ctddev.akhimulya
+
+import ru.ifmo.ctddev.akhimulya.Main._
+
 import scala.util.Random
 
-import Main._
-
+/**
+  * Created by noname on 11/14/16.
+  */
 trait SingleParameterFitter {
     def getName: String
 
@@ -20,13 +25,13 @@ trait SingleParameterFitter {
             shuffled.slice(i * blockSize, i * blockSize + blockSize)))
     }
 
-    def costsByParameters(params: Seq[Int], classifier: kNN, data: MarkedDataSet,
+    def costsByParameters(params: Seq[Double], classifier: Classifier, data: MarkedDataSet,
         cost: (MarkedDataSet, MarkedDataSet) => Double): Seq[Double]
 
-    def costsByParametersImpl(params: Seq[Int], classifier: kNN, data: MarkedDataSet,
+    def costsByParametersImpl(params: Seq[Double], classifier: Classifier, data: MarkedDataSet,
                               cost: (MarkedDataSet, MarkedDataSet) => Double, folds: Int) : Seq[Double] = {
         val split = splitForValidation(data, folds)
-        def getCost(param: Int): Double = {
+        def getCost(param: Double): Double = {
             classifier.setParam(param)
             val costs = split.map(pair => {
                 classifier.train(pair._1)
