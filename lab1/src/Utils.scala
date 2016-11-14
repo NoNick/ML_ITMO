@@ -88,9 +88,9 @@ object Utils {
         val Wc = (W - m * (m + n + 1d) / 2d) / math.sqrt(m * n * (m + n + 1.0) / 12.0)
         System.out.println("Wc = " + math.abs(Wc) + "  ?>=  " + Fa)
 
-        val Wcx = 0.5 * Wc  * (1d + Math.sqrt((n + n - 2d) / (n + m - 1d - Wc * Wc)));
-        val xa = 1.645;
-        val ya = 2.1448;
-        System.out.println("Wcx = " + Math.abs(Wcx) + "  ?>=  " + (xa + ya) / 2d);
+        val Wcx = 0.5 * Wc  * (1d + Math.sqrt((n + n - 2d) / (n + m - 1d - Wc * Wc)))
+        val xa = 1.645
+        val ya = 2.1448
+        System.out.println("Wcx = " + Math.abs(Wcx) + "  ?>=  " + (xa + ya) / 2d)
     }
 }
