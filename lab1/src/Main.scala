@@ -42,17 +42,17 @@ object Main {
         val k = 7
         val kNNEvaluated = new kNN(Euclidean).setParam(k).train(paraboloidData).classify(paraboloidData.map(_._1))
         showClassifiedDataset(paraboloidData, kNNEvaluated, "ClassifiedControl.Euclidean.7")
-        System.out.println("F1 for kNN: " + CrossValidation.F1(paraboloidData, kNNEvaluated))
+        System.out.println("F1 for kNN: " + Utils.F1(paraboloidData, kNNEvaluated))
         System.out.println("Confusion matrix for kNN: ")
-        CrossValidation.printConfusionMatrix(paraboloidData, kNNEvaluated)
+        Utils.printConfusionMatrix(paraboloidData, kNNEvaluated)
 
         val svm = new SVM(crossProduct)
         svm.train(data)
         val svmEvaluated = svm.classify(data.map(_._1))
         showClassifiedDataset(data, svmEvaluated, "SVM.Id")
-        System.out.println("F1 for SVM.Id: " + CrossValidation.F1(data, svmEvaluated))
+        System.out.println("F1 for SVM.Id: " + Utils.F1(data, svmEvaluated))
         System.out.println("Confusion matrix for SVM.Id: ")
-        CrossValidation.printConfusionMatrix(data, svmEvaluated)
+        Utils.printConfusionMatrix(data, svmEvaluated)
 
         val center = data.map(_._1).transpose.map(list => list.sum / list.length)
         val avgDist = data.map(_._1).map(distTransform(center)).sum / data.size.toDouble
@@ -60,9 +60,9 @@ object Main {
         svmDist.train(data)
         val svmDistEvaluated = svmDist.classify(data.map(_._1))
         showClassifiedDataset(data, svmDistEvaluated, "SVM.Dist")
-        System.out.println("F1 for SVM.Dist: " + CrossValidation.F1(data, svmDistEvaluated))
+        System.out.println("F1 for SVM.Dist: " + Utils.F1(data, svmDistEvaluated))
         System.out.println("Confusion matrix for SVM.Dist: ")
-        CrossValidation.printConfusionMatrix(data, svmDistEvaluated)
+        Utils.printConfusionMatrix(data, svmDistEvaluated)
 
         //val metrics = List(Manhattan, Euclidean, Minkowski3)
         //val datasets = List((data, "noTransform"), (toParaboloidData(data), "onParaboloid"))

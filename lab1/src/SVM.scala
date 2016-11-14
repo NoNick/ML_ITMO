@@ -2,9 +2,9 @@ import Main._
 
 class SVM(K: Seq[Double] => Seq[Double] => Double) {
     // SVM params
-    val C = 0.3
+    val C = 0.34
     val initLambda = C / 2.0
-    val descendEps = 1
+    val descendEps = 1e-1
     val filterEps = 1e-2
 
     // learnt data
@@ -81,14 +81,14 @@ class SVM(K: Seq[Double] => Seq[Double] => Double) {
     def train(data: MarkedDataSet): Unit = {
         val trained = trainRecursive(data, List.fill(data.size)(initLambda))
         lambda = trained._1
-        System.out.println("Coordinate descent is completed in " + trained._2 + " steps.")
-        System.out.println("Lambda: " + lambda.mkString(" "))
 
 //        val filtered = data.zip(lambda).filter(p => p._2 < filterEps || p._2 > C - filterEps)
 //        trainData = filtered.map(_._1)
 //        lambda = fitCondition(filtered.map(_._2), C, trainData)
         lambda = fitCondition(lambda, C, data)
         trainData = data
+        System.out.println("Coordinate descent is completed in " + trained._2 + " steps.")
+        System.out.println("Lambda: " + lambda.mkString(" "))
 
         val p0 = data.head
         w0 = data.zip(lambda).map(p => {
