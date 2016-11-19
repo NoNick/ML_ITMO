@@ -11,7 +11,7 @@ object Utils {
         val truePositives = sets._1
         val falsePositives = sets._2
         val falseNegatives = sets._4
-        truePositives.toDouble / (2 * truePositives + falsePositives + falseNegatives + 1)
+        2 * truePositives.toDouble / (2 * truePositives + falsePositives + falseNegatives + 1)
     }
 
     def accuracy(source: MarkedDataSet, evaluated: MarkedDataSet): Double =
@@ -72,15 +72,15 @@ object Utils {
     }
 
     def printWilcoxon(knn: Classifier, svm: Classifier, data: MarkedDataSet, knnResultF1: Double, svmResultF1: Double): Unit = {
-        val knnF1 = CrossValidation.costsForFolds(knn, data, 8, Utils.F1)
-        val svmF1 = CrossValidation.costsForFolds(knn, data, 8, Utils.F1)
+        val knnF1 = CrossValidation.costsForFolds(knn, data, 20, Utils.F1)
+        val svmF1 = CrossValidation.costsForFolds(knn, data, 20, Utils.F1)
         val F1s = (knnF1.zip(List.fill(knnF1.size)(false)) ++ svmF1.zip(List.fill(svmF1.size)(true))).sortBy(_._1)
         def sumRanks(label: Boolean): Double = F1s.zipWithIndex.filter(_._1._2 == label).map(_._2).sum
 
         val n = knnF1.size
         val m = svmF1.size
-        val knnP = knnF1.count(_ >= svmResultF1).toDouble / n // empirical probability of kNN performing better than SVM
-        val svmP = svmF1.count(_ >= knnResultF1).toDouble / n
+        val knnP = knnF1.count(_ >= knnResultF1).toDouble / n
+        val svmP = svmF1.count(_ >= svmResultF1).toDouble / n
         System.out.println("n = " + knnF1.size)
         System.out.println("kNN p-value " + knnP)
         System.out.println("SVM p-value " + svmP)

@@ -4,18 +4,23 @@ import ru.ifmo.ctddev.akhimulya.Main._
 
 class SVM(K: BinaryFunctional) extends Classifier {
     // SVM params
-    var C = 2.0 // 0.34 is empirical optima
-    val initLambda = C / 2.0
-    val minCost = Double.MinValue
-    val minDiff = 1e-3
-    val updatesPerIteration = 50
-    val maxIterations = 50
-    val eps = 1e-2
+    var C = 2.0
+    val initLambda = 0.0
+    val updatesPerIteration = 300
+    val maxStaleIterations = 3
+    val eps = 1e-5
+    val tolerance = 1e-3
 
     // learnt data
-    var w0: Double = 0.0
-    var trainData: MarkedDataSet = null
-    var lambda: Seq[Double] = null
+    var b: Double = 0.0
+    var trained: Seq[Element] = null
+
+    class Element(xs: Point, y: Int, l: Double) {
+        val x = xs
+        val set = y * 2 - 1
+        var lambda = l
+        def E(): Double = f(x) - set
+    }
 
     def cost(lambda: Seq[Double], data: MarkedDataSet): Double = {
         val ld = lambda.zip(data)
@@ -30,106 +35,85 @@ class SVM(K: BinaryFunctional) extends Classifier {
         }).sum / 2.0
     }
 
-    // lambda(i) != 0 && lambda(i) != C
-    def gNorm(lambda: Seq[Double], data: MarkedDataSet, i: Int): Double = {
-        val x = data.zip(lambda).map(p => {
-            val lambdaj = p._2
-            val xj = p._1._1
-            val yj = p._1._2 * 2 - 1 // from {0, 1} to {-1, 1}
-            xj.map(_ * lambdaj * yj)
-        }).transpose.map(_.sum)
-
-        val g = (data(i)._2 * 2 - 1) * K.apply(x, data(i)._1) - 1 + lambda(i) / (2.0 * C)
-        if (lambda(i) < 1e-6) math.min(g, 0) else if (lambda(i) > C - 1e-6) math.max(g, 0) else g
-    }
-
     val random = scala.util.Random
-    def updateLambda(lambda: Seq[Double], data: MarkedDataSet): Seq[Double] = {
-        val indices = lambda.zipWithIndex.filter(l => l._1 > eps && l._1 < C)
-        if (indices.isEmpty)
-            return lambda
 
-        val i = random.shuffle(indices).head._2
-        val l = lambda(i)
-        val l_ = l - gNorm(lambda, data, i) / K.apply(data(i)._1, data(i)._1)
-        lambda.updated(i, math.max(0, math.min(C, l_)))
+    // true if updated
+    def updateLambda(elements: Seq[Element], pairInd: (Int, Int)): Boolean = {
+        val ei = elements(pairInd._1)
+        val ej = elements(pairInd._2)
+        val lambdai_old = ei.lambda
+        val lambdaj_old = ej.lambda
+
+        var L = 0.0
+        var H = 0.0
+        if (ei.set != ej.set) {
+            L = math.max(0, ej.lambda - ei.lambda)
+            H = math.min(C, C + ej.lambda - ei.lambda)
+        } else {
+            L = math.max(0, ej.lambda + ei.lambda - C)
+            H = math.min(C, ej.lambda + ei.lambda)
+        }
+
+        if ((H - L).abs < eps) {
+            return false
+        }
+
+        val eta = 2 * K.apply(ei.x, ej.x) - K.apply(ei.x, ei.x) - K.apply(ej.x, ej.x)
+        if (eta >= -eps) {
+            return false
+        }
+
+        ej.lambda = math.min(H, math.max(L, ej.lambda - ej.set * (ei.E() - ej.E()) / eta))
+        if ((ej.lambda - lambdaj_old).abs < eps) {
+            return false
+        }
+        ei.lambda = ei.lambda + ei.set * ej.set * (lambdaj_old - ej.lambda)
+
+        val b1 = b - ei.E() - ei.set * (ei.lambda - lambdai_old) * K.apply(ei.x, ei.x)
+                            - ej.set * (ej.lambda - lambdaj_old) * K.apply(ei.x, ej.x)
+        val b2 = b - ei.E() - ei.set * (ei.lambda - lambdai_old) * K.apply(ei.x, ej.x)
+                            - ej.set * (ej.lambda - lambdaj_old) * K.apply(ej.x, ej.x)
+        b = if (ei.lambda > eps && ei.lambda < C - eps)      b1
+            else if (ej.lambda > eps && ej.lambda < C - eps) b2
+            else                                             (b1 + b2) / 2.0
+
+        true
     }
 
-    // 0 <= lambda <= C; sum(lambda_i * y_i, i in 1..n) = 0
-    def fitCondition(lambda: Seq[Double], C: Double, data: MarkedDataSet): Seq[Double] = {
-        val normalized = lambda.map(l => math.max(0.0, math.min(C, l)))
-        val n = lambda.size
-        var lSum = data.map(d => d._2 * 2 - 1).zip(normalized).map(p => p._1 * p._2).sum // from {0, 1} to {-1, 1}
-        val result = normalized.zip(data).zipWithIndex.map(l => {
-            // on step i tries to change i summand by lSum / (n - i) so eventually lSum = 0
-            val lambdai = l._1._1
-            val yi = l._1._2._2 * 2 - 1
-            val i = l._2
-            val lambdai_ = math.max(0.0, math.min(C, lambdai - lSum * yi / (n - i).toDouble))
-            lSum = lSum + (lambdai_ - lambdai) * yi
-            lambdai_
-        })
-
-        if (lSum > 1e-6)
-            System.err.println("Cannot fit conditions, sum is " + lSum)
-        result
-    }
-
-    def trainRecursive(data: MarkedDataSet, lambda: Seq[Double], iteration: Int = 0): (Seq[Double], Int) = {
-        var lambda_ = lambda
-        Stream.from(0).take(updatesPerIteration).foreach(_ => lambda_ = updateLambda(lambda_, data))
-//        System.out.println(lambda.mkString("\t"))
-//        System.out.println(cost(lambda_, data))
-        if (//cost(lambda, data) <= minCost ||
-            //    lambda.zip(lambda_).map(p => (p._1 - p._2).abs).max <= minDiff ||
-                iteration + 1 >= maxIterations)
-            (lambda_, iteration + 1)
-        else trainRecursive(data, lambda_, iteration + 1)
+    def trainRecursive(elements: Seq[Element], staleIteration: Int = 0): Int = {
+        if (staleIteration >= maxStaleIterations) 0
+        else {
+            val filtered = elements.zipWithIndex.filter(e =>
+                (e._1.set * e._1.E() < -tolerance && e._1.lambda < C) ||
+                (e._1.set * e._1.E() > tolerance && e._1.lambda > 0)).map(_._2)
+            val changed = random.shuffle(filtered cross elements.indices)
+                                .take(updatesPerIteration).map(updateLambda(elements, _)).fold(false)(_ | _)
+            trainRecursive(elements, if (changed) 0 else staleIteration + 1) + 1
+        }
     }
 
     def train(data: MarkedDataSet, silent: Boolean = true): Unit = {
-        val trained = trainRecursive(data, List.fill(data.size)(initLambda))
-        lambda = trained._1
-        trainData = data
-
-//        val filtered = data.zip(lambda).filter(p => p._2 < filterEps || p._2 > C - filterEps)
-//        trainData = filtered.map(_._1)
-//        lambda = fitCondition(filtered.map(_._2), C, trainData)
+        trained = data.map(d => new Element(d._1, d._2, initLambda))
+        val iterations = trainRecursive(trained)
 
         if (!silent) {
-            val lSum = data.map(_._2 * 2 - 1).zip(lambda).map(p => p._1 * p._2).sum
-            if (lSum.abs > eps) {
-                System.err.println("Sum is not zero " + lSum)
-                lambda = fitCondition(lambda, C, trainData)
-            }
-            System.out.println("Coordinate descent is completed in " + (trained._2 * updatesPerIteration) + " updates.")
+            System.out.println("Coordinate descent is completed in " + (iterations * updatesPerIteration) + " updates.")
+            val lambda = trained.map(_.lambda)
             System.out.println("Cost for resulting lambda " + cost(lambda, data))
             System.out.println("Lambda: " + lambda.mkString(" "))
         }
-
-        w0 = data.map(pk => data.zip(lambda).map(p => {
-            val lambdai = p._2
-            val xi = p._1._1
-            val yi = p._1._2 * 2 - 1
-            lambdai * yi * K.apply(xi, pk._1)
-        }).sum - (pk._2 * 2 - 1).toDouble).sum / data.size
     }
 
-    def a(x: Point, lambda: Seq[Double], data: MarkedDataSet): Double =
-        data.zip(lambda).map(p => {
-            val lambdai = p._2
-            val xi = p._1._1
-            val yi = p._1._2 * 2 - 1
-            lambdai * yi * K.apply(xi, x)
-        }).sum - w0
+    def f(x: Point): Double =
+        trained.map(d => d.lambda * d.set * K.apply(d.x, x)).sum + b
 
     def classify(points: Seq[Point]): MarkedDataSet = {
-        if (trainData == null || lambda == null) throw new IllegalStateException("ru.ifmo.ctddev.akhimulya.SVM was not trained")
+        if (trained == null) throw new IllegalStateException("ru.ifmo.ctddev.akhimulya.SVM was not trained")
         points.par.map(classify).seq
     }
 
     def classify(point: Point): (Point, Int) = {
-        val y = math.signum(a(point, lambda, trainData))
+        val y = math.signum(f(point))
         if (y < 0) (point, 0) else (point, 1)
     }
 

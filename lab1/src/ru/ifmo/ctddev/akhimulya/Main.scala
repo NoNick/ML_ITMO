@@ -67,9 +67,9 @@ object Main {
 //        val rangeKNN = Range.Double(1, 20, 1)
 //        drawValidationPlots(datasetsKNN, CrossValidation, buildKNN, metrics, Utils.accuracy, "kNN.accuracy", rangeKNN)
 //        drawValidationPlots(datasetsKNN, CrossValidation, buildKNN, metrics, Utils.F1, "kNN.F1", rangeKNN)
-        val buildSVM = (kernel: BinaryFunctional) => new SVM(kernel)
-        drawValidationPlots(List((data, "chips.txt")), CrossValidation, buildSVM, List(IdentityKernel, distanceKernel),
-            Utils.F1, "SVM.F1", Range.Double(0.3, 5.0, 0.1))
+//        val buildSVM = (kernel: BinaryFunctional) => new SVM(kernel)
+//        drawValidationPlots(List((data, "chips.txt")), CrossValidation, buildSVM, List(IdentityKernel, distanceKernel),
+//            Utils.F1, "SVM.F1", Range.Double(0.3, 5.0, 0.1))
     }
 
     def projectOnParaboloid(center: Point, t: Double, u: Double): Point => Point = point => {
