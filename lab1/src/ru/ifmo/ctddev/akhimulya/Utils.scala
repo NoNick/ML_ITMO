@@ -71,19 +71,20 @@ object Utils {
         case Seq(a, b, _) => (a, b)
     }
 
-    def printWilcoxon(knn: Classifier, svm: Classifier, data: MarkedDataSet, knnResultF1: Double, svmResultF1: Double): Unit = {
-        val knnF1 = CrossValidation.costsForFolds(knn, data, 20, Utils.F1)
-        val svmF1 = CrossValidation.costsForFolds(knn, data, 20, Utils.F1)
-        val F1s = (knnF1.zip(List.fill(knnF1.size)(false)) ++ svmF1.zip(List.fill(svmF1.size)(true))).sortBy(_._1)
+    def printWilcoxon(knn: Classifier, svm: Classifier, data: MarkedDataSet): Unit = {
+        val folds = 4
+        val repeats = 10
+        val F1Pairs = CrossValidation.pairStatistics(knn, svm, data, folds, repeats, Utils.F1)
+        val n = F1Pairs.size
+        val m = n
+        val F1s = (F1Pairs.map(_._1).zip(List.fill(n)(false)) ++ F1Pairs.map(_._2).zip(List.fill(n)(true))).sortBy(_._1)
         def sumRanks(label: Boolean): Double = F1s.zipWithIndex.filter(_._1._2 == label).map(_._2).sum
 
-        val n = knnF1.size
-        val m = svmF1.size
-        val knnP = knnF1.count(_ >= knnResultF1).toDouble / n
-        val svmP = svmF1.count(_ >= svmResultF1).toDouble / n
-        System.out.println("n = " + knnF1.size)
-        System.out.println("kNN p-value " + knnP)
-        System.out.println("SVM p-value " + svmP)
+        val difs = F1Pairs.map(p => p._1 - p._2)
+        val avgDif = difs.sum / difs.size
+        val variance = math.sqrt(difs.map(d => math.pow(d - avgDif, 2)).sum / (n - 1))
+        val tValue = avgDif / (variance / math.sqrt(n))
+        System.out.println("t-value " + tValue)
 
         val Rx = sumRanks(false)
         val Ry = sumRanks(true)
@@ -92,7 +93,7 @@ object Utils {
 
         val alpha = 0.05
         val Fa = 1.960
-        val Wc = (W - m * (m + n + 1d) / 2d) / math.sqrt(m * n * (m + n + 1.0) / 12.0)
+        val Wc = (W - m * (m + n + 1.0) / 2d) / math.sqrt(m * n * (m + n + 1.0) / 12.0)
         System.out.println("Wc = " + math.abs(Wc) + "  ?>=  " + Fa)
 
         val Wcx = 0.5 * Wc  * (1d + Math.sqrt((n + n - 2d) / (n + m - 1d - Wc * Wc)))
