@@ -69,8 +69,8 @@ object Main {
         Utils.printConfusionMatrix(data, svmGaussEvaluated)
         System.out.println()
 
-//        Utils.printWilcoxon(svmDist, svmGauss, data)
-        Utils.printWilcoxon(knn, svmDist, data)
+//        Utils.compareClassifiers(svmDist, svmGauss, data)
+        Utils.compareClassifiers(knn, svmDist, data)
 
 //        val datasetsKNN = List((data, "noTransform"), (toParaboloidData(data), "onParaboloid"))
 //        val metrics = List[BinaryFunctional](Manhattan, Euclidean, Minkowski3)

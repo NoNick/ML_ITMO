@@ -71,14 +71,14 @@ object Utils {
         case Seq(a, b, _) => (a, b)
     }
 
-    def printWilcoxon(knn: Classifier, svm: Classifier, data: MarkedDataSet): Unit = {
+    def compareClassifiers(c1: Classifier, c2: Classifier, data: MarkedDataSet): Unit = {
         val folds = 4
-        val repeats = 10
-        val F1Pairs = CrossValidation.pairStatistics(knn, svm, data, folds, repeats, Utils.F1)
+        val repeats = 5
+        val F1Pairs = CrossValidation.pairStatistics(c1, c2, data, folds, repeats, Utils.F1)
         val n = F1Pairs.size
         val m = n
-        val F1s = (F1Pairs.map(_._1).zip(List.fill(n)(false)) ++ F1Pairs.map(_._2).zip(List.fill(n)(true))).sortBy(_._1)
-        def sumRanks(label: Boolean): Double = F1s.zipWithIndex.filter(_._1._2 == label).map(_._2).sum
+        System.out.println("Average F1 for " + c1.getClass + ": " + (F1Pairs.map(_._1).sum / n))
+        System.out.println("Average F1 for " + c2.getClass + ": " + (F1Pairs.map(_._2).sum / n))
 
         val difs = F1Pairs.map(p => p._1 - p._2)
         val avgDif = difs.sum / difs.size
@@ -86,6 +86,8 @@ object Utils {
         val tValue = avgDif / (variance / math.sqrt(n))
         System.out.println("t-value " + tValue)
 
+        val F1s = (F1Pairs.map(_._1).zip(List.fill(n)(false)) ++ F1Pairs.map(_._2).zip(List.fill(n)(true))).sortBy(_._1)
+        def sumRanks(label: Boolean): Double = F1s.zipWithIndex.filter(_._1._2 == label).map(_._2).sum
         val Rx = sumRanks(false)
         val Ry = sumRanks(true)
         val W = Rx
@@ -98,7 +100,7 @@ object Utils {
 
         val Wcx = 0.5 * Wc  * (1d + Math.sqrt((n + n - 2d) / (n + m - 1d - Wc * Wc)))
         val xa = 1.645
-        val ya = 2.1448
+        val ya = 2.878
         System.out.println("Wcx = " + Math.abs(Wcx) + "  ?>=  " + (xa + ya) / 2d)
     }
 }

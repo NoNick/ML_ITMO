@@ -7,7 +7,7 @@ class SVM(K: BinaryFunctional) extends Classifier {
     var C = 2.0
     val initLambda = 0.0
     val updatesPerIteration = 300
-    val maxStaleIterations = 3
+    val maxStaleIterations = 5
     val eps = 1e-5
     val tolerance = 1e-3
 
@@ -97,9 +97,9 @@ class SVM(K: BinaryFunctional) extends Classifier {
         val iterations = trainRecursive(trained)
 
         if (!silent) {
-            System.out.println("Coordinate descent is completed in " + (iterations * updatesPerIteration) + " updates.")
+            System.out.println("Sequential Minimal Optimization is completed in " + (iterations * updatesPerIteration) + " updates.")
             val lambda = trained.map(_.lambda)
-            System.out.println("Cost for resulting lambda " + cost(lambda, data))
+//            System.out.println("Cost for resulting lambda " + cost(lambda, data))
             System.out.println("Lambda: " + lambda.mkString(" "))
         }
     }
