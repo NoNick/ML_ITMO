@@ -8,8 +8,6 @@ class KernelRegression(K: Double => Double,
     var h = 1.0
 
     def train(data: Seq[(Double, Double)]): Unit = {
-        xs = data
-
         val range = Range.Double(0.1, 5.0, 0.1)
         val errors = range.map(LOO_MSE(data, _))
 
@@ -17,6 +15,8 @@ class KernelRegression(K: Double => Double,
         output(PNG("plots/", "MSEByH"), xyChart(List(plot), showLegend = false))
 
         h = range.zip(errors).minBy(_._2)._1
+
+        xs = data
     }
 
     def LOO_MSE(data: Seq[(Double, Double)], h: Double) = {
